@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Flow Four">
+<meta name="theme-color" content="#0D3B38">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Flow Four</title>
+<style>
+  :root {
+    --teal: #0D3B38; --mid: #1A6B63; --mint: #02C39A;
+    --sand: #F5F0E8; --gold: #E8A838; --night: #1A2E2C;
+    --text: #1A2E2C; --muted: #5C7C79; --border: #D4EDE9;
+    --bg: #F5F0E8; --card: #FFFFFF;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); }
+
+  /* ── Layout ── */
+  .app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+  .screen { display: none; flex: 1; flex-direction: column; overflow: hidden; padding-bottom: var(--safe-bottom); }
+  .screen.active { display: flex; }
+
+  /* ── Header ── */
+  .hdr { padding: calc(var(--safe-top) + 12px) 16px 10px; background: var(--teal); flex-shrink: 0; }
+  .hdr-row { display: flex; align-items: center; justify-content: space-between; }
+  .hdr-logo { font-size: 18px; font-weight: 700; color: #fff; letter-spacing: 3px; }
+  .hdr-logo span { color: var(--mint); }
+  .hdr-sub { font-size: 11px; color: rgba(255,255,255,0.55); letter-spacing: 1px; margin-top: 2px; }
+  .hdr-sport { font-size: 12px; font-weight: 600; color: var(--mint); background: rgba(2,195,154,0.15); border-radius: 99px; padding: 3px 10px; }
+
+  /* ── Scroll content ── */
+  .scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px; }
+
+  /* ── Cards ── */
+  .card { background: var(--card); border-radius: 14px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+  .card-lbl { font-size: 10px; font-weight: 600; letter-spacing: 2px; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; }
+
+  /* ── Buttons ── */
+  .btn { width: 100%; padding: 16px; border-radius: 14px; border: none; font-size: 16px; font-weight: 600; cursor: pointer; transition: transform 0.08s, opacity 0.08s; }
+  .btn:active { transform: scale(0.97); opacity: 0.9; }
+  .btn-primary { background: var(--teal); color: #fff; }
+  .btn-mint { background: var(--mint); color: #fff; }
+  .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--text); }
+  .btn-danger { background: #FCE8E8; color: #A32D2D; }
+  .btn-sm { padding: 12px; font-size: 14px; border-radius: 12px; }
+  .btn-row { display: grid; gap: 10px; }
+  .btn-row-2 { grid-template-columns: 1fr 1fr; }
+  .btn-row-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+  /* ── Sport picker ── */
+  .sport-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .sport-card { padding: 18px 12px; border-radius: 14px; border: 2px solid var(--border); background: var(--card); text-align: center; cursor: pointer; transition: all 0.15s; }
+  .sport-card.active { border-color: var(--mint); background: #E8F9F5; }
+  .sport-card .sport-icon { font-size: 32px; margin-bottom: 6px; }
+  .sport-card .sport-name { font-size: 14px; font-weight: 600; color: var(--text); }
+  .sport-card .sport-desc { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  /* ── Stat grid ── */
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .stat-card { background: var(--card); border-radius: 12px; padding: 14px 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+  .stat-val { font-size: 28px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+  .stat-lbl { font-size: 10px; font-weight: 600; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-top: 2px; }
+
+  /* ── Rally display ── */
+  .rally-wrap { text-align: center; padding: 8px 0 16px; }
+  .rally-num { font-size: 100px; font-weight: 800; line-height: 1; color: var(--teal); font-variant-numeric: tabular-nums; }
+  .rally-lbl { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 4px; }
+
+  /* ── Progress bar ── */
+  .progress-wrap { height: 6px; background: var(--border); border-radius: 3px; margin-bottom: 16px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--mint); border-radius: 3px; transition: width 0.2s; }
+
+  /* ── Big tap button ── */
+  .tap-zone { flex-shrink: 0; padding: 12px 16px; background: var(--teal); }
+  .tap-btn { width: 100%; height: 100px; border-radius: 18px; background: var(--mint); border: none; font-size: 22px; font-weight: 800; color: #fff; cursor: pointer; letter-spacing: 1px; transition: transform 0.07s; display: flex; align-items: center; justify-content: center; gap: 8px; user-select: none; -webkit-user-select: none; }
+  .tap-btn:active { transform: scale(0.96); }
+  .tap-controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 8px; }
+  .tap-ctrl { padding: 12px 8px; border-radius: 12px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; transition: transform 0.07s; }
+  .tap-ctrl:active { transform: scale(0.95); }
+  .tc-end { background: rgba(255,255,255,0.15); color: #fff; }
+  .tc-undo { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); }
+  .tc-stop { background: rgba(255,80,80,0.25); color: #FFB0B0; }
+
+  /* ── Timer ── */
+  .timer { font-size: 36px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; text-align: center; margin-bottom: 4px; }
+  .timer-lbl { font-size: 10px; font-weight: 600; letter-spacing: 2px; color: rgba(255,255,255,0.5); text-align: center; text-transform: uppercase; margin-bottom: 12px; }
+
+  /* ── Target slider ── */
+  .target-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .target-val { font-size: 22px; font-weight: 700; color: var(--teal); }
+  input[type=range] { width: 100%; accent-color: var(--mint); }
+
+  /* ── BT / Scoreboard ── */
+  .conn-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .conn-row:last-child { border-bottom: none; }
+  .conn-info { flex: 1; }
+  .conn-name { font-size: 14px; font-weight: 600; color: var(--text); }
+  .conn-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .conn-dot { width: 10px; height: 10px; border-radius: 50%; margin-left: 12px; flex-shrink: 0; }
+  .dot-on { background: var(--mint); }
+  .dot-off { background: var(--border); }
+  .conn-btn { padding: 7px 14px; border-radius: 99px; border: 1.5px solid var(--border); background: transparent; font-size: 12px; font-weight: 600; color: var(--teal); cursor: pointer; margin-left: 10px; }
+  .conn-btn.connected { border-color: var(--mint); color: var(--mint); }
+
+  /* ── Celebration overlay ── */
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(2,195,154,0.15); backdrop-filter: blur(4px); align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+  .overlay.show { display: flex; }
+  .overlay-card { background: #fff; border-radius: 20px; padding: 28px 24px; text-align: center; width: 100%; max-width: 320px; box-shadow: 0 8px 40px rgba(0,0,0,0.15); }
+  .overlay-num { font-size: 72px; font-weight: 800; color: var(--mint); line-height: 1; }
+  .overlay-title { font-size: 20px; font-weight: 700; color: var(--teal); margin: 8px 0 6px; }
+  .overlay-msg { font-size: 14px; color: var(--muted); margin-bottom: 20px; }
+
+  /* ── History ── */
+  .hist-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .hist-item:last-child { border-bottom: none; }
+  .hist-left .date { font-size: 13px; font-weight: 600; color: var(--text); }
+  .hist-left .meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .hist-right .best { font-size: 20px; font-weight: 700; color: var(--teal); text-align: right; }
+  .hist-right .lbl { font-size: 10px; color: var(--muted); text-align: right; letter-spacing: 1px; text-transform: uppercase; }
+  .pb-tag { display: inline-block; background: var(--mint); color: #fff; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 99px; margin-left: 6px; }
+
+  /* ── Bottom nav ── */
+  .bnav { display: flex; background: #fff; border-top: 1px solid var(--border); padding-bottom: var(--safe-bottom); flex-shrink: 0; }
+  .bnav-btn { flex: 1; padding: 10px 0; border: none; background: transparent; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .bnav-icon { font-size: 20px; }
+  .bnav-lbl { font-size: 10px; font-weight: 600; color: var(--muted); letter-spacing: 0.5px; }
+  .bnav-btn.active .bnav-lbl { color: var(--teal); }
+  .bnav-btn.active .bnav-icon { filter: none; }
+
+  /* ── Summary rally list ── */
+  .rally-list-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .rally-list-item:last-child { border-bottom: none; }
+  .rl-num { font-weight: 600; color: var(--text); }
+  .rl-shots { font-size: 16px; font-weight: 700; color: var(--teal); }
+  .empty { text-align: center; padding: 32px 0; color: var(--muted); font-size: 14px; }
+
+  /* BT instructions */
+  .bt-step { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .bt-step:last-child { border-bottom: none; }
+  .bt-num { width: 24px; height: 24px; border-radius: 50%; background: var(--teal); color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .bt-text { font-size: 13px; color: var(--text); line-height: 1.5; }
+  .bt-text strong { color: var(--teal); }
+
+  .section-title { font-size: 20px; font-weight: 700; color: var(--teal); margin-bottom: 4px; }
+  .section-sub { font-size: 13px; color: var(--muted); margin-bottom: 16px; line-height: 1.5; }
+
+  .pill { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 99px; letter-spacing: 0.5px; }
+  .pill-teal { background: #E1F5EE; color: #0F6E56; }
+  .pill-gold { background: #FDF3DC; color: #8A5E00; }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- ══ HOME SCREEN ══════════════════════════════ -->
+  <div class="screen active" id="s-home">
+    <div class="hdr">
+      <div class="hdr-row">
+        <div>
+          <div class="hdr-logo">F<span>4</span> FLOW FOUR</div>
+          <div class="hdr-sub">CO-OPETITION SCORING</div>
+        </div>
+        <div class="hdr-sport" id="hdr-sport-lbl">PADEL</div>
+      </div>
+    </div>
+    <div class="scroll">
+
+      <!-- Sport picker -->
+      <div class="card">
+        <div class="card-lbl">Select Sport</div>
+        <div class="sport-picker">
+          <div class="sport-card active" id="sp-padel" onclick="setSport('padel')">
+            <div class="sport-icon">🎾</div>
+            <div class="sport-name">Padel</div>
+            <div class="sport-desc">4 players · glass walls</div>
+          </div>
+          <div class="sport-card" id="sp-tennis" onclick="setSport('tennis')">
+            <div class="sport-icon">🎾</div>
+            <div class="sport-name">Tennis</div>
+            <div class="sport-desc">2 or 4 players · open</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Target -->
+      <div class="card">
+        <div class="card-lbl">Rally Target</div>
+        <div class="target-row">
+          <span style="font-size:14px;color:var(--muted)">Set your goal for this session</span>
+          <span class="target-val" id="home-target">30</span>
+        </div>
+        <input type="range" min="5" max="100" step="5" value="30" id="target-slider" oninput="document.getElementById('home-target').textContent=this.value">
+      </div>
+
+      <!-- Stats -->
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-val" id="home-pb">—</div>
+          <div class="stat-lbl">All-Time Best</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="home-sessions">0</div>
+          <div class="stat-lbl">Sessions</div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" onclick="startSession()" style="margin-bottom:12px;">▶ Start Session</button>
+      <div class="btn-row btn-row-2">
+        <button class="btn btn-outline btn-sm" onclick="showNav('s-connect')">📡 Connect</button>
+        <button class="btn btn-outline btn-sm" onclick="showNav('s-history')">📊 History</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SESSION SCREEN ═══════════════════════════ -->
+  <div class="screen" id="s-session">
+    <div class="hdr" style="padding-top:calc(var(--safe-top) + 8px)">
+      <div class="hdr-row" style="margin-bottom:4px;">
+        <div id="sess-sport-lbl" style="font-size:11px;font-weight:600;letter-spacing:2px;color:rgba(255,255,255,0.6)">PADEL</div>
+        <div id="sess-target-lbl" style="font-size:11px;font-weight:600;letter-spacing:1px;color:var(--mint)">TARGET: 30</div>
+      </div>
+      <div class="timer" id="sess-timer">00:00</div>
+      <div class="timer-lbl">session time</div>
+      <div class="stat-grid" style="margin-bottom:0;gap:8px;">
+        <div class="stat-card" style="background:rgba(255,255,255,0.1);box-shadow:none;padding:10px;">
+          <div class="stat-val" style="color:#fff;font-size:20px;" id="sess-best">0</div>
+          <div class="stat-lbl" style="color:rgba(255,255,255,0.55)">Session Best</div>
+        </div>
+        <div class="stat-card" style="background:rgba(255,255,255,0.1);box-shadow:none;padding:10px;">
+          <div class="stat-val" style="color:#fff;font-size:20px;" id="sess-avg">0</div>
+          <div class="stat-lbl" style="color:rgba(255,255,255,0.55)">Avg Rally</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex:1;overflow-y:auto;background:var(--bg);padding:12px 16px;">
+      <div class="rally-wrap">
+        <div class="rally-num" id="sess-count">0</div>
+        <div class="rally-lbl" id="sess-count-lbl">shots this rally</div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-fill" id="sess-progress" style="width:0%"></div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-val" id="sess-rallies">0</div>
+          <div class="stat-lbl">Rallies Played</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="sess-pb">—</div>
+          <div class="stat-lbl">All-Time Best</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Big tap zone -->
+    <div class="tap-zone">
+      <button class="tap-btn" id="main-tap" ontouchstart="tapShot()" onclick="tapShot()">
+        ⬤ TAP — SHOT PLAYED
+      </button>
+      <div class="tap-controls">
+        <button class="tap-ctrl tc-end" ontouchstart="endRally()" onclick="endRally()">✓ Rally End</button>
+        <button class="tap-ctrl tc-undo" ontouchstart="undoShot()" onclick="undoShot()">↩ Undo</button>
+        <button class="tap-ctrl tc-stop" onclick="confirmEndSession()">■ Stop</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SUMMARY SCREEN ════════════════════════════ -->
+  <div class="screen" id="s-summary">
+    <div class="hdr">
+      <div class="hdr-logo" style="font-size:15px;letter-spacing:2px;">SESSION COMPLETE</div>
+      <div class="hdr-sub" id="sum-sport-sub">PADEL · FLOW FOUR</div>
+    </div>
+    <div class="scroll">
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-val" id="sum-best">0</div><div class="stat-lbl">Best Rally</div></div>
+        <div class="stat-card"><div class="stat-val" id="sum-rallies">0</div><div class="stat-lbl">Rallies</div></div>
+        <div class="stat-card"><div class="stat-val" id="sum-avg">0</div><div class="stat-lbl">Average</div></div>
+        <div class="stat-card"><div class="stat-val" id="sum-time">0:00</div><div class="stat-lbl">Duration</div></div>
+      </div>
+      <div class="card" id="sum-pb-card" style="display:none;background:#E8F9F5;border:1.5px solid var(--mint);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <span class="pill pill-teal">NEW PB</span>
+          <span style="font-size:13px;color:var(--muted)">Personal best beaten!</span>
+        </div>
+        <div style="font-size:38px;font-weight:800;color:var(--mint);" id="sum-pb-val">0</div>
+      </div>
+      <div class="card">
+        <div class="card-lbl">Rally Breakdown</div>
+        <div id="sum-rally-list"></div>
+      </div>
+      <button class="btn btn-primary" onclick="showNav('s-home');updateHome();">⌂ Back to Home</button>
+    </div>
+  </div>
+
+  <!-- ══ HISTORY SCREEN ════════════════════════════ -->
+  <div class="screen" id="s-history">
+    <div class="hdr">
+      <div class="hdr-logo" style="font-size:15px;letter-spacing:2px;">HISTORY</div>
+      <div class="hdr-sub">ALL SESSIONS</div>
+    </div>
+    <div class="scroll">
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-val" id="hist-pb">—</div><div class="stat-lbl">All-Time Best</div></div>
+        <div class="stat-card"><div class="stat-val" id="hist-sessions">0</div><div class="stat-lbl">Sessions</div></div>
+      </div>
+      <div class="card">
+        <div class="card-lbl">Past Sessions</div>
+        <div id="hist-list"><div class="empty">No sessions yet — go play!</div></div>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="clearData()" style="margin-top:4px;">Clear All Data</button>
+    </div>
+    <nav class="bnav">
+      <button class="bnav-btn" onclick="showNav('s-home')"><span class="bnav-icon">⌂</span><span class="bnav-lbl">Home</span></button>
+      <button class="bnav-btn active"><span class="bnav-icon">📊</span><span class="bnav-lbl">History</span></button>
+      <button class="bnav-btn" onclick="showNav('s-connect')"><span class="bnav-icon">📡</span><span class="bnav-lbl">Connect</span></button>
+    </nav>
+  </div>
+
+  <!-- ══ CONNECT SCREEN ════════════════════════════ -->
+  <div class="screen" id="s-connect">
+    <div class="hdr">
+      <div class="hdr-logo" style="font-size:15px;letter-spacing:2px;">CONNECT</div>
+      <div class="hdr-sub">BLUETOOTH & SCOREBOARD</div>
+    </div>
+    <div class="scroll">
+
+      <!-- Remote button -->
+      <div class="card">
+        <div class="section-title">Remote Button</div>
+        <div class="section-sub">Connect a Bluetooth clicker or remote shutter button to tap rallies without touching your phone — perfect for courtside use.</div>
+        <div class="conn-row">
+          <div class="conn-info">
+            <div class="conn-name">Bluetooth Remote</div>
+            <div class="conn-desc" id="bt-remote-desc">Not connected</div>
+          </div>
+          <div class="conn-dot" id="bt-remote-dot" style="background:var(--border)"></div>
+          <button class="conn-btn" id="bt-remote-btn" onclick="connectBTRemote()">Connect</button>
+        </div>
+        <div class="card" style="background:#F0FAF7;box-shadow:none;margin-top:12px;margin-bottom:0;padding:12px 14px;">
+          <div class="card-lbl" style="margin-bottom:8px;">Setup Guide</div>
+          <div class="bt-step"><div class="bt-num">1</div><div class="bt-text">Buy any <strong>Bluetooth AB Shutter 3</strong> remote clicker (~R80–150 online or at phone accessory shops). Works on Android and iPhone.</div></div>
+          <div class="bt-step"><div class="bt-num">2</div><div class="bt-text">Put your phone's Bluetooth on. Press and hold the button on the clicker until it flashes — it enters pairing mode.</div></div>
+          <div class="bt-step"><div class="bt-num">3</div><div class="bt-text">Pair the clicker in your phone's Bluetooth settings like any device. Name is usually <strong>"AB Shutter3"</strong> or <strong>"Camera Shutter"</strong>.</div></div>
+          <div class="bt-step"><div class="bt-num">4</div><div class="bt-text">Once paired, the clicker sends a <strong>volume key press</strong> when clicked. Tap <strong>Connect</strong> above and press the button — Flow Four will detect it and use it as your tap input.</div></div>
+          <div class="bt-step" style="border:none"><div class="bt-num">5</div><div class="bt-text">Clip or velcro the button to your wristband or net post. Press once per shot — the rally counter goes up automatically.</div></div>
+        </div>
+      </div>
+
+      <!-- Smart Scoreboard -->
+      <div class="card">
+        <div class="section-title">Smart Scoreboard</div>
+        <div class="section-sub">Mirror the live rally count to an outdoor LED display or a tablet on a stand — visible to all four players and spectators.</div>
+
+        <div class="conn-row">
+          <div class="conn-info">
+            <div class="conn-name">Display / Tablet (same WiFi)</div>
+            <div class="conn-desc" id="sb-wifi-desc">Not broadcasting</div>
+          </div>
+          <div class="conn-dot" id="sb-wifi-dot" style="background:var(--border)"></div>
+          <button class="conn-btn" id="sb-wifi-btn" onclick="startScoreboard()">Broadcast</button>
+        </div>
+
+        <div class="card" style="background:#F0FAF7;box-shadow:none;margin-top:12px;margin-bottom:0;padding:12px 14px;">
+          <div class="card-lbl" style="margin-bottom:8px;">Scoreboard Setup — 3 Options</div>
+
+          <div class="bt-step">
+            <div class="bt-num">A</div>
+            <div class="bt-text"><strong>Phone/tablet on a stand</strong> — Open this app on a second device and go to the scoreboard URL shown above. It auto-updates in real time over your hotspot or WiFi. Mount on a tripod or stake next to the court.</div>
+          </div>
+          <div class="bt-step">
+            <div class="bt-num">B</div>
+            <div class="bt-text"><strong>Outdoor LED display</strong> — Any LED panel with a browser (Android TV stick or Raspberry Pi plugged in) can show the scoreboard page full-screen. Recommended: <strong>Xiaomi TV Stick + outdoor screen</strong>, ~R800–1,500 total.</div>
+          </div>
+          <div class="bt-step" style="border:none">
+            <div class="bt-num">C</div>
+            <div class="bt-text"><strong>Chromecast / Apple TV</strong> — Cast the scoreboard page from Chrome or Safari to any screen near the court. Works over a mobile hotspot if no WiFi is available.</div>
+          </div>
+        </div>
+
+        <div id="sb-url-card" style="display:none;" class="card" style="margin-top:12px;margin-bottom:0;background:#E8F9F5;">
+          <div class="card-lbl">Scoreboard URL</div>
+          <div id="sb-url" style="font-size:13px;font-weight:600;color:var(--teal);word-break:break-all;margin-top:4px;"></div>
+          <button class="btn btn-outline btn-sm" style="margin-top:10px;" onclick="copyScoreboardUrl()">Copy URL</button>
+        </div>
+      </div>
+
+    </div>
+    <nav class="bnav">
+      <button class="bnav-btn" onclick="showNav('s-home')"><span class="bnav-icon">⌂</span><span class="bnav-lbl">Home</span></button>
+      <button class="bnav-btn" onclick="showNav('s-history')"><span class="bnav-icon">📊</span><span class="bnav-lbl">History</span></button>
+      <button class="bnav-btn active"><span class="bnav-icon">📡</span><span class="bnav-lbl">Connect</span></button>
+    </nav>
+  </div>
+
+</div>
+
+<!-- ══ CELEBRATION OVERLAY ══════════════════════ -->
+<div class="overlay" id="overlay" onclick="dismissOverlay()">
+  <div class="overlay-card">
+    <div class="overlay-num" id="ov-num">30</div>
+    <div class="overlay-title" id="ov-title">Target Reached!</div>
+    <div class="overlay-msg" id="ov-msg">Keep the rally going!</div>
+    <button class="btn btn-mint" onclick="dismissOverlay()" style="margin-top:4px;">Keep Playing</button>
+  </div>
+</div>
+
+<script>
+// ── State ────────────────────────────────────────
+const state = {
+  sport: 'padel',
+  target: 30,
+  currentRally: 0,
+  sessionRallies: [],
+  sessionBest: 0,
+  sessionStart: null,
+  timerInterval: null,
+  targetReached: false,
+  btConnected: false,
+  sbBroadcasting: false,
+  sbChannel: null,
+};
+
+// ── Storage ──────────────────────────────────────
+function loadData() {
+  try { return JSON.parse(localStorage.getItem('ff_data') || '{"pb":0,"sessions":[]}'); }
+  catch(e) { return {pb:0, sessions:[]}; }
+}
+function saveData(d) {
+  try { localStorage.setItem('ff_data', JSON.stringify(d)); } catch(e) {}
+}
+
+// ── Navigation ───────────────────────────────────
+function showNav(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (id === 's-history') renderHistory();
+  if (id === 's-home') updateHome();
+}
+
+// ── Sport ────────────────────────────────────────
+function setSport(sport) {
+  state.sport = sport;
+  document.getElementById('sp-padel').classList.toggle('active', sport === 'padel');
+  document.getElementById('sp-tennis').classList.toggle('active', sport === 'tennis');
+  const lbl = sport === 'padel' ? 'PADEL' : 'TENNIS';
+  document.getElementById('hdr-sport-lbl').textContent = lbl;
+}
+
+// ── Home ─────────────────────────────────────────
+function updateHome() {
+  const d = loadData();
+  document.getElementById('home-pb').textContent = d.pb || '—';
+  document.getElementById('home-sessions').textContent = (d.sessions||[]).length;
+}
+document.getElementById('target-slider').addEventListener('input', function() {
+  state.target = parseInt(this.value);
+  document.getElementById('home-target').textContent = this.value;
+});
+
+// ── Session ──────────────────────────────────────
+function startSession() {
+  state.target = parseInt(document.getElementById('target-slider').value);
+  state.currentRally = 0;
+  state.sessionRallies = [];
+  state.sessionBest = 0;
+  state.sessionStart = Date.now();
+  state.targetReached = false;
+
+  const lbl = state.sport === 'padel' ? 'PADEL' : 'TENNIS';
+  document.getElementById('sess-sport-lbl').textContent = lbl;
+  document.getElementById('sess-target-lbl').textContent = 'TARGET: ' + state.target;
+  document.getElementById('sess-pb').textContent = loadData().pb || '—';
+
+  clearInterval(state.timerInterval);
+  state.timerInterval = setInterval(() => {
+    const s = Math.floor((Date.now() - state.sessionStart) / 1000);
+    document.getElementById('sess-timer').textContent =
+      String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+  }, 1000);
+
+  updateSession();
+  showNav('s-session');
+}
+
+function tapShot() {
+  state.currentRally++;
+  const btn = document.getElementById('main-tap');
+  btn.style.transform = 'scale(0.95)';
+  setTimeout(() => btn.style.transform = '', 80);
+  if (state.currentRally === state.target && !state.targetReached) {
+    state.targetReached = true;
+    showOverlay(state.currentRally, 'Target Reached! 🎉', 'Keep the rally going!');
+  }
+  broadcastScore();
+  updateSession();
+}
+
+function undoShot() {
+  if (state.currentRally > 0) {
+    state.currentRally--;
+    if (state.currentRally < state.target) state.targetReached = false;
+    broadcastScore();
+    updateSession();
+  }
+}
+
+function endRally() {
+  if (state.currentRally === 0) return;
+  state.sessionRallies.push(state.currentRally);
+  if (state.currentRally > state.sessionBest) state.sessionBest = state.currentRally;
+  const d = loadData();
+  const isPB = state.currentRally > d.pb;
+  if (isPB) {
+    d.pb = state.currentRally;
+    saveData(d);
+    showOverlay(state.currentRally, '🏆 New Personal Best!', 'You just set a new all-time record!');
+  }
+  state.currentRally = 0;
+  state.targetReached = false;
+  broadcastScore();
+  updateSession();
+}
+
+function updateSession() {
+  document.getElementById('sess-count').textContent = state.currentRally;
+  document.getElementById('sess-best').textContent = state.sessionBest;
+  const avg = state.sessionRallies.length
+    ? Math.round(state.sessionRallies.reduce((a,b)=>a+b,0)/state.sessionRallies.length) : 0;
+  document.getElementById('sess-avg').textContent = avg;
+  document.getElementById('sess-rallies').textContent = state.sessionRallies.length;
+  const pct = Math.min(100, Math.round(state.currentRally / state.target * 100));
+  document.getElementById('sess-progress').style.width = pct + '%';
+}
+
+function confirmEndSession() {
+  if (confirm('End this session?')) endSession();
+}
+
+function endSession() {
+  clearInterval(state.timerInterval);
+  if (state.currentRally > 0) endRally();
+  const duration = Math.floor((Date.now() - state.sessionStart) / 1000);
+  const avg = state.sessionRallies.length
+    ? Math.round(state.sessionRallies.reduce((a,b)=>a+b,0)/state.sessionRallies.length) : 0;
+  const d = loadData();
+  const isPB = state.sessionBest > 0 && state.sessionBest >= d.pb;
+  const sess = {
+    date: new Date().toLocaleDateString('en-ZA', {day:'numeric',month:'short',year:'numeric'}),
+    sport: state.sport,
+    best: state.sessionBest,
+    rallies: state.sessionRallies.length,
+    avg, duration
+  };
+  d.sessions = [sess, ...(d.sessions||[])].slice(0,50);
+  saveData(d);
+
+  document.getElementById('sum-best').textContent = state.sessionBest;
+  document.getElementById('sum-rallies').textContent = state.sessionRallies.length;
+  document.getElementById('sum-avg').textContent = avg;
+  document.getElementById('sum-time').textContent =
+    String(Math.floor(duration/60)).padStart(2,'0') + ':' + String(duration%60).padStart(2,'0');
+  document.getElementById('sum-sport-sub').textContent =
+    (state.sport === 'padel' ? 'PADEL' : 'TENNIS') + ' · FLOW FOUR';
+
+  const pbCard = document.getElementById('sum-pb-card');
+  if (isPB) {
+    pbCard.style.display = 'block';
+    document.getElementById('sum-pb-val').textContent = state.sessionBest;
+  } else { pbCard.style.display = 'none'; }
+
+  const list = document.getElementById('sum-rally-list');
+  if (!state.sessionRallies.length) {
+    list.innerHTML = '<div class="empty">No rallies recorded</div>';
+  } else {
+    list.innerHTML = state.sessionRallies.map((r,i) =>
+      `<div class="rally-list-item">
+        <span style="color:var(--muted);font-size:12px;">Rally ${i+1}</span>
+        <span class="rl-shots">${r} shots${r===state.sessionBest?' <span class="pb-tag">BEST</span>':''}</span>
+      </div>`
+    ).join('');
+  }
+  showNav('s-summary');
+}
+
+// ── History ──────────────────────────────────────
+function renderHistory() {
+  const d = loadData();
+  document.getElementById('hist-pb').textContent = d.pb || '—';
+  document.getElementById('hist-sessions').textContent = (d.sessions||[]).length;
+  const list = document.getElementById('hist-list');
+  if (!d.sessions || !d.sessions.length) {
+    list.innerHTML = '<div class="empty">No sessions yet — go play!</div>';
+  } else {
+    list.innerHTML = d.sessions.map(s =>
+      `<div class="hist-item">
+        <div class="hist-left">
+          <div class="date">${s.date} <span class="pill ${s.sport==='padel'?'pill-teal':'pill-gold'}" style="font-size:10px;">${(s.sport||'padel').toUpperCase()}</span></div>
+          <div class="meta">${s.rallies} rallies · avg ${s.avg} · ${String(Math.floor(s.duration/60)).padStart(2,'0')}:${String(s.duration%60).padStart(2,'0')}</div>
+        </div>
+        <div class="hist-right">
+          <div class="best">${s.best}</div>
+          <div class="lbl">best</div>
+        </div>
+      </div>`
+    ).join('');
+  }
+}
+
+function clearData() {
+  if (confirm('Clear all history and personal bests?')) {
+    saveData({pb:0,sessions:[]});
+    renderHistory();
+    updateHome();
+  }
+}
+
+// ── Celebrations ─────────────────────────────────
+function showOverlay(num, title, msg) {
+  document.getElementById('ov-num').textContent = num;
+  document.getElementById('ov-title').textContent = title;
+  document.getElementById('ov-msg').textContent = msg;
+  document.getElementById('overlay').classList.add('show');
+}
+function dismissOverlay() {
+  document.getElementById('overlay').classList.remove('show');
+}
+
+// ── Bluetooth Remote (Volume Key) ─────────────────
+function connectBTRemote() {
+  if (state.btConnected) {
+    state.btConnected = false;
+    document.getElementById('bt-remote-dot').className = 'conn-dot dot-off';
+    document.getElementById('bt-remote-desc').textContent = 'Not connected';
+    document.getElementById('bt-remote-btn').textContent = 'Connect';
+    document.getElementById('bt-remote-btn').classList.remove('connected');
+  } else {
+    state.btConnected = true;
+    document.getElementById('bt-remote-dot').className = 'conn-dot dot-on';
+    document.getElementById('bt-remote-desc').textContent = 'Listening for volume key press';
+    document.getElementById('bt-remote-btn').textContent = 'Disconnect';
+    document.getElementById('bt-remote-btn').classList.add('connected');
+  }
+}
+
+// Volume key listener — AB Shutter3 sends volume up/down
+document.addEventListener('keydown', function(e) {
+  if (!state.btConnected) return;
+  if (e.key === 'AudioVolumeUp' || e.key === 'VolumeUp' ||
+      e.key === 'AudioVolumeDown' || e.key === 'VolumeDown' ||
+      e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+    e.preventDefault();
+    const sess = document.getElementById('s-session');
+    if (sess.classList.contains('active')) tapShot();
+  }
+});
+
+// ── Scoreboard broadcast (BroadcastChannel API) ───
+let sbChannel = null;
+function startScoreboard() {
+  if (state.sbBroadcasting) {
+    state.sbBroadcasting = false;
+    if (sbChannel) { sbChannel.close(); sbChannel = null; }
+    document.getElementById('sb-wifi-dot').className = 'conn-dot dot-off';
+    document.getElementById('sb-wifi-desc').textContent = 'Not broadcasting';
+    document.getElementById('sb-wifi-btn').textContent = 'Broadcast';
+    document.getElementById('sb-wifi-btn').classList.remove('connected');
+    document.getElementById('sb-url-card').style.display = 'none';
+  } else {
+    state.sbBroadcasting = true;
+    sbChannel = new BroadcastChannel('flowfour_score');
+    document.getElementById('sb-wifi-dot').className = 'conn-dot dot-on';
+    document.getElementById('sb-wifi-desc').textContent = 'Broadcasting to scoreboard';
+    document.getElementById('sb-wifi-btn').textContent = 'Stop';
+    document.getElementById('sb-wifi-btn').classList.add('connected');
+    const url = window.location.origin + window.location.pathname + '?scoreboard=1';
+    document.getElementById('sb-url').textContent = url;
+    document.getElementById('sb-url-card').style.display = 'block';
+  }
+}
+function broadcastScore() {
+  if (sbChannel) {
+    sbChannel.postMessage({
+      type: 'score',
+      rally: state.currentRally,
+      target: state.target,
+      best: state.sessionBest,
+      sport: state.sport,
+      rallies: state.sessionRallies.length,
+    });
+  }
+}
+function copyScoreboardUrl() {
+  const url = window.location.origin + window.location.pathname + '?scoreboard=1';
+  navigator.clipboard.writeText(url).then(() => alert('URL copied!')).catch(() => alert(url));
+}
+
+// ── Scoreboard mode ───────────────────────────────
+if (new URLSearchParams(window.location.search).get('scoreboard') === '1') {
+  document.querySelector('.app').innerHTML = `
+    <div style="height:100vh;height:100dvh;background:#0D3B38;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;">
+      <div style="font-size:14px;font-weight:700;letter-spacing:4px;color:rgba(255,255,255,0.4);margin-bottom:12px;" id="sb-sport">PADEL · FLOW FOUR</div>
+      <div style="font-size:160px;font-weight:900;color:#fff;line-height:1;font-variant-numeric:tabular-nums;" id="sb-num">0</div>
+      <div style="font-size:16px;font-weight:600;letter-spacing:3px;color:#02C39A;margin-top:8px;" id="sb-lbl">SHOTS THIS RALLY</div>
+      <div style="margin-top:32px;display:flex;gap:32px;">
+        <div style="text-align:center;">
+          <div style="font-size:42px;font-weight:800;color:#02C39A;font-variant-numeric:tabular-nums;" id="sb-best">0</div>
+          <div style="font-size:11px;font-weight:600;letter-spacing:2px;color:rgba(255,255,255,0.4);margin-top:4px;">SESSION BEST</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:42px;font-weight:800;color:#E8A838;font-variant-numeric:tabular-nums;" id="sb-target">30</div>
+          <div style="font-size:11px;font-weight:600;letter-spacing:2px;color:rgba(255,255,255,0.4);margin-top:4px;">TARGET</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:42px;font-weight:800;color:rgba(255,255,255,0.6);font-variant-numeric:tabular-nums;" id="sb-rallies">0</div>
+          <div style="font-size:11px;font-weight:600;letter-spacing:2px;color:rgba(255,255,255,0.4);margin-top:4px;">RALLIES</div>
+        </div>
+      </div>
+      <div style="position:absolute;bottom:20px;font-size:11px;letter-spacing:3px;color:rgba(255,255,255,0.2);">F4 · FLOW FOUR · CO-OPETITION</div>
+    </div>`;
+  const ch = new BroadcastChannel('flowfour_score');
+  ch.onmessage = function(e) {
+    const d = e.data;
+    if (d.type === 'score') {
+      document.getElementById('sb-num').textContent = d.rally;
+      document.getElementById('sb-best').textContent = d.best;
+      document.getElementById('sb-target').textContent = d.target;
+      document.getElementById('sb-rallies').textContent = d.rallies;
+      document.getElementById('sb-sport').textContent = (d.sport==='padel'?'PADEL':'TENNIS') + ' · FLOW FOUR';
+    }
+  };
+}
+
+// ── Service Worker ────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+// ── Init ──────────────────────────────────────────
+updateHome();
+</script>
+</body>
+</html>
